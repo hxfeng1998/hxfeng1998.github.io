@@ -1,0 +1,71 @@
+# 工作流名称，将在 GitHub 的 Actions 页面显示
+name: Deploy Blog
+
+# 触发条件：当 push 到 main 分支时触发
+on:
+  push:
+    branches:
+      - main  # 当推送到 main 分支时触发
+
+# 工作流程
+jobs:
+  # 定义一个名为 deploy 的工作
+  deploy:
+    # 使用最新版的 Ubuntu 系统作为运行环境
+    runs-on: ubuntu-latest
+    steps:
+      # 第一步：检出代码
+      - uses: actions/checkout@v3  # 使用 checkout action 的 v3 版本
+        with:
+          # GitHub 会自动创建 GITHUB_TOKEN 密钥，用于认证
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # 如果主题以子模块方式安装，需要设置 submodules: true
+          submodules: true  # 如果你用了主题子模块
+
+      # 第二步：设置 Node.js 环境
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'  # 指定 Node.js 版本
+
+      # 第三步：设置 pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest  # 使用最新版本的 pnpm
+
+      # 第四步：安装依赖
+      - name: Install Dependencies
+        run: pnpm install
+
+      # 第五步：设置 SSH 部署密钥
+      - name: Setup Deploy Key
+        env:
+          # 从 GitHub Secrets 中获取部署密钥
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          # 创建 ssh 目录
+          mkdir -p ~/.ssh/
+          # 写入密钥
+          echo "$DEPLOY_KEY" > ~/.ssh/id_rsa
+          # 设置密钥权限
+          chmod 600 ~/.ssh/id_rsa
+          # 添加 GitHub 到已知主机
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # 第六步：构建和部署
+      - name: Build and Deploy
+        env:
+          # 设置 Git 用户信息
+          GIT_NAME: github-actions[bot]
+          GIT_EMAIL: github-actions[bot]@users.noreply.github.com
+        run: |
+          # 配置 Git 用户信息
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          # 清理缓存
+          pnpm run clean
+          # 构建站点
+          pnpm run build
+          # 部署到 GitHub Pages
+          pnpm run deploy 
