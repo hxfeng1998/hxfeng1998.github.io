@@ -1,9 +1,12 @@
 ---
 title: CSS层叠规则
 date: 2025-01-02 23:12:26
+type: "tags"
 updated:
-tags:
-keywords:
+tags: CSS
+categories: 前端开发
+keywords: CSS 层叠规则 层叠上下文 层叠顺序
+cover: /images/cover/CSS-cascading-rules.webp
 ---
 
 # CSS层叠相关知识点
