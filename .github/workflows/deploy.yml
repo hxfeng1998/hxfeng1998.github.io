@@ -6,7 +6,7 @@ on:
   push:
     branches:
       - main  # 当推送到 main 分支时触发
-    workflow_dispatch:
+  workflow_dispatch:    # 支持手动触发
 
 # 工作流程
 jobs:
@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '22'  # 指定 Node.js 版本
+          node-version: '18'  # 指定 Node.js 版本
 
       # 第三步：设置 pnpm
       - name: Setup pnpm
@@ -37,7 +37,10 @@ jobs:
 
       # 第四步：安装依赖
       - name: Install Dependencies
-        run: pnpm install
+        run: |
+          echo "开始安装依赖..."
+          pnpm install
+          echo "依赖安装完成"
 
       # 第五步：设置 SSH 部署密钥
       - name: Setup Deploy Key
@@ -54,24 +57,22 @@ jobs:
           # 添加 GitHub 到已知主机
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      # 第六步：构建和部署
-      - name: Build and Deploy
-        env:
-          # 设置 Git 用户信息
-          GIT_NAME: github-actions[bot]
-          GIT_EMAIL: github-actions[bot]@users.noreply.github.com
-          # 使用 Github Actions 的 token
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 第六步：构建并检查
+      - name: Build and Check
         run: |
-          # 配置 Git 用户信息
-          git config --global user.name "$GIT_NAME"
-          git config --global user.email "$GIT_EMAIL"
-          # 清理缓存
+          echo "开始清理..."
           pnpm run clean
-          # 构建站点
+          
+          echo "开始构建..."
           pnpm run build
-          # 部署到 GitHub Pages
-          pnpm run deploy
+          
+          echo "检查生成的文件..."
+          ls -la public/
+          echo "检查 index.html..."
+          cat public/index.html | head -n 20
+          
+          echo "构建和检查完成"
+
       # 第七步：部署到云服务器
       - name: Deploy to Server
         uses: appleboy/scp-action@master
@@ -82,3 +83,37 @@ jobs:
           source: "public/"
           target: "/var/www/blog"
           strip_components: 1
+
+      # 检查服务器部署
+      - name: Verify Server Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "检查服务器文件..."
+            ls -la /var/www/blog/
+            echo "检查 index.html..."
+            cat /var/www/blog/index.html | head -n 20
+
+      # 第八步：部署到 GitHub Pages
+      - name: Deploy to GitHub Pages
+        env:
+          GIT_NAME: github-actions[bot]
+          GIT_EMAIL: github-actions[bot]@users.noreply.github.com
+        run: |
+          echo "配置 Git..."
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          
+          echo "开始部署到 GitHub Pages..."
+          pnpm run deploy
+          
+          echo "部署完成"
+
+      # 完成通知
+      - name: Deployment Status
+        run: |
+          echo "所有部署步骤已完成"
+          date
