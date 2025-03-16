@@ -81,7 +81,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "public/"
-          target: "/var/www/blog"
+          target: "/opt/1panel/apps/openresty/openresty/www/blog"
           strip_components: 1
 
       # 检查服务器部署
@@ -93,9 +93,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             echo "检查服务器文件..."
-            ls -la /var/www/blog/
+            ls -la /opt/1panel/apps/openresty/openresty/www/blog/
             echo "检查 index.html..."
-            cat /var/www/blog/index.html | head -n 20
+            cat /opt/1panel/apps/openresty/openresty/www/blog/index.html | head -n 20
 
       # 第八步：部署到 GitHub Pages
       - name: Deploy to GitHub Pages
